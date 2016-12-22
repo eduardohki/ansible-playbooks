@@ -1,0 +1,18 @@
+- name: Install Graylog Server
+  sudo: yes
+  hosts: graylog_servers
+  vars:
+    graylog_version: 2.1
+  tasks:
+    - name: Install OpenJDK 8
+      yum:
+        name: java-1.8.0-openjdk-headless
+        state: latest
+    - name: Install Graylog Repository
+      yum:
+        name: https://packages.graylog2.org/repo/packages/graylog-{{ graylog_version }}-repository_latest.rpm
+        state: latest
+    - name: Install Graylog Server
+      yum:
+        name: graylog-server
+        state: latest
