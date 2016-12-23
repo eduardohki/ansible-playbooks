@@ -1,5 +1,5 @@
 - name: Install Graylog Server
-  sudo: yes
+  become_user: root
   hosts: graylog_servers
   vars:
     graylog_version: 2.1
