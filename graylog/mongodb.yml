@@ -1,0 +1,61 @@
+- name: Install MongoDB Server
+  become_user: root
+  hosts: graylog_servers
+  vars:
+    mongodb_version: 3.2
+    mongodb_admin_password: open123*.
+    mongodb_admin_password: open123*.
+  tasks:
+    - name: Install MongoDB Repository
+      yum_repository:
+        name: mongodb-org-3.2
+        description: MongoDB Repository
+        baseurl: https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/{{ mongodb_version }}/x86_64/
+        gpgkey: https://www.mongodb.org/static/pgp/server-{{ mongodb_version }}.asc
+        gpgcheck: yes
+        enabled: yes
+    - name: Install MongoDB {{ mongodb_version }}
+      yum:
+        name: mongodb-org
+        state: latest
+    - name: Install PyMongo
+      yum:
+        name: python-pymongo
+        state: present
+    - name: Adjust MongoDB SELinux Permissions
+      seport:
+        ports: 27017
+        proto: tcp
+        setype: mongod_port_t
+        state: present
+    - name: Start and Enable MongoDB Service
+      service:
+        name: mongod
+        enabled: yes
+        state: started
+    - name: Wait for MongoDB to start
+      pause:
+        seconds: 20
+    - name: Set MongoDB Admin Password
+      mongodb_user:
+        database: admin
+        name: admin
+        password: "{{ mongodb_admin_password }}"
+        roles: userAdminAnyDatabase
+        state: present
+    - name: Ceate Graylog DB and Set Password
+      mongodb_user:
+        database: graylog
+        name: graylog
+        password: "{{ mongodb_graylog_password }}"
+        roles: dbOwner
+        state: present
+    - name: Enable Auth in MongoDB
+      lineinfile:
+        dest: /etc/mongod.conf
+        regexp: '^#security'
+        line: 'security:\n  authorization: enabled'
+    - name: Restart MongoDB to apply changes
+      service:
+        name: mongod
+        state: restarted
