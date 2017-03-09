@@ -3,8 +3,8 @@
   hosts: graylog_servers
   vars:
     mongodb_version: 3.2
-    mongodb_admin_password: open123*.
-    mongodb_admin_password: open123*.
+    mongodb_admin_password: open123mongoadmin
+    mongodb_graylog_password: open123graylog
   tasks:
     - name: Install MongoDB Repository
       yum_repository:
@@ -18,9 +18,17 @@
       yum:
         name: mongodb-org
         state: latest
-    - name: Install PyMongo
+    - name: Install PIP
       yum:
-        name: python-pymongo
+        name: python-pip
+        state: present
+    - name: Install Latest PyMongo from PIP
+      pip:
+        name: pymongo
+        state: latest
+    - name: Install SELinux tools
+      yum:
+        name: policycoreutils-python
         state: present
     - name: Adjust MongoDB SELinux Permissions
       seport:
@@ -38,24 +46,30 @@
         seconds: 20
     - name: Set MongoDB Admin Password
       mongodb_user:
+        login_database: admin
         database: admin
         name: admin
         password: "{{ mongodb_admin_password }}"
         roles: userAdminAnyDatabase
         state: present
-    - name: Ceate Graylog DB and Set Password
-      mongodb_user:
-        database: graylog
-        name: graylog
-        password: "{{ mongodb_graylog_password }}"
-        roles: dbOwner
-        state: present
     - name: Enable Auth in MongoDB
-      lineinfile:
+      blockinfile:
         dest: /etc/mongod.conf
-        regexp: '^#security'
-        line: 'security:\n  authorization: enabled'
+        marker: '# {mark} Auth Section'
+        block: |
+          security:
+            authorization: enabled
     - name: Restart MongoDB to apply changes
       service:
         name: mongod
         state: restarted
+    - name: Ceate Graylog DB and Set Password
+      mongodb_user:
+        database: graylog
+        login_database: admin
+        login_user: admin
+        login_password: "{{ mongodb_admin_password }}"
+        name: graylog
+        password: "{{ mongodb_graylog_password }}"
+        roles: dbOwner
+        state: present

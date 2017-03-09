@@ -4,6 +4,22 @@
   vars:
     graylog_version: 2.2
   tasks:
+    - name: Install EPEL Repository
+      yum:
+        name: epel-release
+        state: present
+    - name: Install OpenJDK 8
+      yum:
+        name: java-1.8.0-openjdk-headless
+        state: present
+    - name: Install Password Generator
+      yum:
+        name: pwgen
+        state: present
+    - name: Install GNU Coreutils
+      yum:
+        name: coreutils
+        state: present
     - name: Install Graylog Repository
       yum:
         name: https://packages.graylog2.org/repo/packages/graylog-{{ graylog_version }}-repository_latest.rpm
