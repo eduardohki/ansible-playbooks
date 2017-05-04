@@ -1,0 +1,36 @@
+- name: Install Kibana
+  become_user: root
+  hosts: graylog_servers
+  vars:
+    kibana_version: 4.6
+    kibana_listen: 127.0.0.1
+    kibana_basepath: /kibana
+    kibana_config_file: /opt/kibana/config/kibana.yml
+  tasks:
+    - name: Install Kibana Repository
+      yum_repository:
+        name: kibana-{{ kibana_version }}
+        description: Kibana repository for {{ kibana_version }}.x packages
+        baseurl: https://packages.elastic.co/kibana/{{ kibana_version }}/centos
+        gpgkey: https://packages.elastic.co/GPG-KEY-elasticsearch
+        gpgcheck: yes
+        enabled: yes
+    - name: Install Kibana {{ kibana_version }}
+      yum:
+        name: kibana
+        state: present
+    - name: Set Kibana Listen IP
+      lineinfile:
+        dest: '{{ kibana_config_file }}'
+        regexp: '^# server.host'
+        line: 'server.host: "{{ kibana_listen }}"'
+    - name: Set Kibana Base URL Path
+      lineinfile:
+        dest: '{{ kibana_config_file }}'
+        regexp: '^# server.basePath'
+        line: 'server.basePath: "{{ kibana_basepath }}"'
+    - name: Start and Enable Kibana Service
+      service:
+        name: kibana
+        enabled: yes
+        state: started

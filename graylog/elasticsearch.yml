@@ -18,7 +18,7 @@
         state: present
     - name: Install Elasticsearch Repository
       yum_repository:
-        name: elasticsearch-2.x
+        name: elasticsearch-{{ elasticsearch_branch }}
         description: Elasticsearch repository for {{ elasticsearch_branch }} packages
         baseurl: https://packages.elastic.co/elasticsearch/{{ elasticsearch_branch }}/centos
         gpgkey: https://packages.elastic.co/GPG-KEY-elasticsearch

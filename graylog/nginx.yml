@@ -1,0 +1,83 @@
+- name: Install NGINX as Reverse Proxy
+  become_user: root
+  hosts: graylog_servers
+  vars:
+    graylog_site_conf: /etc/nginx/default.d/graylog.conf
+    kibana_passwd_file: /etc/nginx/kibana.htpaswd
+    kibana_login: kibanaadmin
+    kibana_passwd: open123kibana
+  tasks:
+    - name: Install EPEL Repository
+      yum:
+        name: epel-release
+        state: present
+    - name: Install NGINX
+      yum:
+        name: nginx
+        state: present
+    - name: Install Apache Tools
+      yum:
+        name: httpd-tools
+        state: present
+    - name: Install PIP
+      yum:
+        name: python-pip
+        state: present
+    - name: Install Latest passlib from PIP
+      pip:
+        name: passlib
+        state: latest
+    - name: Allow Reverse Proxy for Graylog Port in SELinux
+      seport:
+        ports: 9000
+        proto: tcp
+        setype: http_port_t
+        state: present
+    - name: Allow Reverse Proxy for Kibana Port in SELinux
+      seport:
+        ports: 5601
+        proto: tcp
+        setype: http_port_t
+        state: present
+    - name: Create Reverse Proxy Config File
+      file:
+        path: "{{ graylog_site_conf }}"
+        owner: root
+        group: root
+        mode: 0644
+        state: touch
+    - name: Configure Reverse Proxy
+      blockinfile:
+        path: "{{ graylog_site_conf }}"
+        block: |
+          location /kibana/ {
+            auth_basic "Kibana Auth";
+            auth_basic_user_file /etc/nginx/kibana.htpaswd;
+            proxy_set_header    Host $http_host;
+            proxy_set_header    X-Forwarded-Host $host;
+            proxy_set_header    X-Forwarded-Server $host;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_pass          http://127.0.0.1:5601/;
+          }
+
+          location / {
+            proxy_set_header    Host $http_host;
+            proxy_set_header    X-Forwarded-Host $host;
+            proxy_set_header    X-Forwarded-Server $host;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    X-Graylog-Server-URL http://$host/api;
+            proxy_pass          http://127.0.0.1:9000/;
+          }
+    - name: Configure Kibana Password
+      htpasswd:
+        path: "{{ kibana_passwd_file }}"
+        name: "{{ kibana_login }}"
+        password: "{{ kibana_passwd }}"
+        owner: root
+        group: nginx
+        mode: 0640
+    - name: Start and Enable NGINX Service
+      service:
+        name: nginx
+        enabled: yes
+        state: started
