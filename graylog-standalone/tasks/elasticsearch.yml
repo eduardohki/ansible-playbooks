@@ -1,0 +1,74 @@
+- name: Install Elasticsearch
+  become_user: root
+  hosts: graylog_servers
+  vars:
+    elasticsearch_branch: 2.x
+    elasticsearch_version: 2.4
+    elasticsearch_heap_size: 2g
+    elasticsearch_cluster_name: graylog
+    elasticsearch_config_file: /etc/elasticsearch/elasticsearch.yml
+    elasticsearch_sysconfig_file: /etc/sysconfig/elasticsearch
+    elasticsearch_unit_file: /usr/lib/systemd/system/elasticsearch.service
+    elasticsearch_high_disk_watermark: 5g
+    elasticsearch_low_disk_watermark: 2g
+  tasks:
+    - name: Install OpenJDK 8
+      yum:
+        name: java-1.8.0-openjdk-headless
+        state: present
+    - name: Install Elasticsearch Repository
+      yum_repository:
+        name: elasticsearch-{{ elasticsearch_branch }}
+        description: Elasticsearch repository for {{ elasticsearch_branch }} packages
+        baseurl: https://packages.elastic.co/elasticsearch/{{ elasticsearch_branch }}/centos
+        gpgkey: https://packages.elastic.co/GPG-KEY-elasticsearch
+        gpgcheck: yes
+        enabled: yes
+    - name: Install Elasticsearch {{ elasticsearch_version }}
+      yum:
+        name: elasticsearch
+        state: present
+    - name: Set Elasticsearch Memory Lock
+      lineinfile:
+        dest: '{{ elasticsearch_config_file }}'
+        regexp: '^# bootstrap.memory_lock'
+        line: 'bootstrap.memory_lock: true'
+    - name: Set Elasticsearch Heap Size
+      lineinfile:
+        dest: '{{ elasticsearch_sysconfig_file }}'
+        regexp: '^#ES_HEAP_SIZE'
+        line: 'ES_HEAP_SIZE={{ elasticsearch_heap_size }}'
+    - name: Set Elasticsearch Max Locked Memory
+      lineinfile:
+        dest: '{{ elasticsearch_sysconfig_file }}'
+        regexp: '^#MAX_LOCKED_MEMORY'
+        line: 'MAX_LOCKED_MEMORY=unlimited'
+    - name: Set Elasticsearch Unit file to Enable Memory Lock
+      lineinfile:
+        dest: '{{ elasticsearch_unit_file }}'
+        regexp: '^#LimitMEMLOCK=infinity'
+        line: 'LimitMEMLOCK=infinity'
+    - name: Set Elasticsearch Cluster Name
+      lineinfile:
+        dest: '{{ elasticsearch_config_file }}'
+        regexp: '^# cluster.name:'
+        line: 'cluster.name: {{ elasticsearch_cluster_name }}'
+    - name: Set Elasticsearch Max Compression and Disk Allocation Tresholds
+      blockinfile:
+        dest: '{{ elasticsearch_config_file }}'
+        marker: '# {mark} Custom Elasticsearch Parameters'
+        block: |
+          index.codec: best_compression
+          cluster.routing.allocation.disk.threshold_enabled: True
+          cluster.routing.allocation.disk.watermark.high: {{ elasticsearch_high_disk_watermark }}
+          cluster.routing.allocation.disk.watermark.low: {{ elasticsearch_low_disk_watermark }}
+    - name: Install Elasticsearch Kopf Plugin
+      elasticsearch_plugin:
+        name: lmenezes/elasticsearch-kopf
+        version: 2.1.1
+        state: present
+    - name: Start and Enable Elasticsearch Service
+      service:
+        name: elasticsearch
+        enabled: yes
+        state: started

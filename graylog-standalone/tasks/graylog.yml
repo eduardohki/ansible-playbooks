@@ -1,0 +1,89 @@
+- name: Install Graylog Server
+  become_user: root
+  hosts: graylog_servers
+  vars:
+    graylog_version: 2.2
+    graylog_config_file: /etc/graylog/server/server.conf
+    graylog_password_secret: CSAMDPEsAxd0039rG75Br1ayTJWbElqPGiRfO6avTPbfr5WCVkf6nzno7OZ3V1PVbBiUXnxSdk5JLdagRdpi4cu3b3RPDPAu
+    # password in sha means "open123graylog"
+    graylog_admin_passwd_sha: ff8bdea5143d01624cef257f5b643dbc5b990fe9060c1fd4789d9359011703e9
+    graylog_root_timezone: America/Sao_Paulo
+    es_shard_count: 1
+    es_cluster_name: graylog
+    graylog_journal_age: 12h
+    graylog_journal_size: 5gb
+    graylog_db_user: graylog
+    graylog_db_secret: open123graylog
+  tasks:
+    - name: Install EPEL Repository
+      yum:
+        name: epel-release
+        state: present
+    - name: Install OpenJDK 8
+      yum:
+        name: java-1.8.0-openjdk-headless
+        state: present
+    - name: Install Password Generator
+      yum:
+        name: pwgen
+        state: present
+    - name: Install GNU Coreutils
+      yum:
+        name: coreutils
+        state: present
+    - name: Install Graylog Repository
+      yum:
+        name: https://packages.graylog2.org/repo/packages/graylog-{{ graylog_version }}-repository_latest.rpm
+        state: latest
+    - name: Install Graylog Server
+      yum:
+        name: graylog-server
+        state: latest
+    - name: Set Graylog Password Secret
+      lineinfile:
+        dest: '{{ graylog_config_file }}'
+        regexp: '^password_secret'
+        line: 'password_secret = {{ graylog_password_secret }}'
+    - name: Set Graylog Root Password SHA2
+      lineinfile:
+        dest: '{{ graylog_config_file }}'
+        regexp: '^root_password_sha2'
+        line: 'root_password_sha2 = {{ graylog_admin_passwd_sha }}'
+    - name: Set Graylog Root Timezone
+      lineinfile:
+        dest: '{{ graylog_config_file }}'
+        regexp: '^#root_timezone'
+        line: 'root_timezone = {{ graylog_root_timezone }}'
+    - name: Set Elasticsearch Shard Count
+      lineinfile:
+        dest: '{{ graylog_config_file }}'
+        regexp: '^elasticsearch_shards'
+        line: 'elasticsearch_shards = {{ es_shard_count }}'
+    - name: Set Elasticsearch Cluster Name
+      lineinfile:
+        dest: '{{ graylog_config_file }}'
+        regexp: '^#elasticsearch_cluster_name'
+        line: 'elasticsearch_cluster_name = {{ es_cluster_name }}'
+    - name: Set Graylog Journal Max Age
+      lineinfile:
+        dest: '{{ graylog_config_file }}'
+        regexp: '^#message_journal_max_age'
+        line: 'message_journal_max_age = {{ graylog_journal_age }}'
+    - name: Set Graylog Journal Max Age
+      lineinfile:
+        dest: '{{ graylog_config_file }}'
+        regexp: '^#message_journal_max_size'
+        line: 'message_journal_max_size = {{ graylog_journal_size }}'
+    - name: Set MongoDB Auth
+      lineinfile:
+        dest: '{{ graylog_config_file }}'
+        regexp: '^mongodb_uri'
+        line: 'mongodb_uri = mongodb://{{ graylog_db_user }}:{{ graylog_db_secret }}@localhost:27017/graylog'
+    - name: Start and Enable Graylog Service
+      service:
+        name: graylog-server
+        enabled: yes
+        state: started
+### TODO:
+#  Instalar GeoIP
+#  Instalar regras Update GeoIP Cron
