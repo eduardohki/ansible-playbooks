@@ -1,0 +1,6 @@
+tasks:
+  - include: tasks/elasticsearch.yml
+  - include: tasks/mongodb.yml
+  - include: tasks/graylog.yml
+  - include: tasks/kibana.yml
+  - include: tasks/nginx.yml
