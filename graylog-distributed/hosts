@@ -1,0 +1,29 @@
+# Elasticsearch Group
+[es_servers]
+es[1:3].eduardohki.tech
+
+[es_servers:vars]
+ansible_user=centos
+ansible_become=true
+elasticsearch_branch=5.x
+elasticsearch_heap_size=2g
+elasticsearch_cluster_nodes='["es1.eduardohki.tech", "es2.eduardohki.tech", "es3.eduardohki.tech"]'
+elasticsearch_cluster_name=graylog
+elasticsearch_minimum_masters=2
+elasticsearch_config_file=/etc/elasticsearch/elasticsearch.yml
+elasticsearch_jvm_options_file=/etc/elasticsearch/jvm.options
+elasticsearch_sysconfig_file=/etc/sysconfig/elasticsearch
+elasticsearch_unit_file=/usr/lib/systemd/system/elasticsearch.service
+elasticsearch_high_disk_watermark=5g
+elasticsearch_low_disk_watermark=2g
+
+# Graylog Group
+[graylog_servers]
+gl[1:3].eduardohki.tech
+
+[graylog_servers:vars]
+ansible_user=centos
+
+# MongoDB Group
+[mongodb_servers]
+gl[1:3].eduardohki.tech
